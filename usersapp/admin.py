@@ -1,9 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomizeUser
+from .models import CustomizeUser, Role, UserRole
 
 # Register your models here.
+
+admin.site.register(Role)
+admin.site.register(UserRole)
+
 class UserInline(admin.StackedInline):
     model = CustomizeUser
     can_delete = False

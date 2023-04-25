@@ -10,3 +10,22 @@ class CustomizeUser(models.Model):
     invalid_password_attempt = models.PositiveIntegerField(default=0)
     password_update_date = models.DateField()
     
+class Role(models.Model):
+    AUTHORITY_CHOICES = {
+        ('SELLER', 'SELLER'),
+        ('CUSTOMER', 'CUSTOMER'),
+    }
+    authority = models.CharField(max_length=20, choices=AUTHORITY_CHOICES, default='CUSTOMER')
+    def __str__(self):
+        return self.authority
+    
+
+class UserRole(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.user.username+' - '+self.role.authority
+    

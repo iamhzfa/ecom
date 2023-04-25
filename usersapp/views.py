@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from .serializers import RegisterSerializer,ChangePasswordSerializer,LoginSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.contrib.auth.models import User
@@ -12,9 +11,13 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from rest_framework import generics
-from .tasks import send_mail_password_reset,send_mail_activation_link
+from .tasks import send_mail_link
 from django.contrib.auth.hashers import check_password
 # from django.contrib.auth import authenticate,login,logout
+from .models import Role, UserRole
+from django.core.mail import send_mail
+from django.conf import settings
+
 
 # Create your views here.
 class RegisterView(APIView):
@@ -32,8 +35,11 @@ class RegisterView(APIView):
         encodedCustId = urlsafe_base64_encode(force_bytes(custId))
         token = PasswordResetTokenGenerator().make_token(user)
         activation_link = 'http://127.0.0.1:8000/users/confirm-registration/'+encodedCustId+'/'+token+'/'
-        send_mail_activation_link.delay(user.email,activation_link)
 
+        subject = 'Welcom to our ecommerce app'
+        message = f'Thank you for registering {user.username}. For confirming you account click the below link {activation_link}'
+        send_mail_link.delay(user.email, activation_link, subject, message)
+        # send_mail_activation_link.delay(user.email,activation_link)
         return Response({
             'acitvation_link':activation_link,
             'message':'user register successfully',
@@ -44,12 +50,14 @@ class ConfirmRegistrationView(APIView):
     permission_classes = [AllowAny]
     def post(self, request, encoded_pk, token, format=None):
         id = smart_str(urlsafe_base64_decode(encoded_pk))
-        print('id : ',id)
+        # print('id : ',id)
         user = User.objects.get(id = id)
         if not PasswordResetTokenGenerator().check_token(user, token):
             return Response({"Error": "Token is not valid or expired"})
-        user.is_active = True  
-        user.save()
+        user.is_active = True
+        role = Role.objects.get(authority='CUSTOMER')
+        userRole = UserRole.objects.get_or_create(user=user, role=role)
+        user.save() 
         token = get_tokens_for_user(user)
 
         return Response({
@@ -61,8 +69,14 @@ class LoginView(APIView):
     permission_classes=[AllowAny]
     def post(self,request):
         data = request.data
-        username = data['username'] 
-        password = data['password']
+        try:
+            username = data['username'] 
+        except:
+            return Response("Please give username")
+        try:
+            password = data['password']
+        except:
+            return Response("Please give password")
         try:
             user = User.objects.get(username = username)
         except:
@@ -81,7 +95,11 @@ class LoginView(APIView):
             encodedCustId = urlsafe_base64_encode(force_bytes(custId))
             token = PasswordResetTokenGenerator().make_token(user)
             activation_link = 'http://127.0.0.1:8000/users/confirm-registration/'+encodedCustId+'/'+token+'/'
-            send_mail_activation_link.delay(user.email,activation_link)
+            # send_mail_activation_link.delay(user.email,activation_link)
+
+            subject = 'Welcom to our ecommerce app'
+            message = f'Thank you for coming again {user.username}. For using our app you please confirm by clicking the below link {activation_link}'
+            send_mail_link.delay(user.email, activation_link, subject, message)
             return Response({
                 'message':'Your account is not Active please Activate your account!please check your Email & click on Activate your account',
                 'status':status.HTTP_400_BAD_REQUEST
@@ -121,7 +139,7 @@ class ResetPasswordView(APIView):
         # user = User.objects.filter(email = email).first()
         try:
             user = User.objects.get(email = email)
-        except User.DoesNotExists:
+        except:
             return Response({
                 'message':'User Does not Exist'
             })
@@ -134,7 +152,11 @@ class ResetPasswordView(APIView):
         )
             
         reset_link = 'http://127.0.0.1:8000/users/password-reset/'+encoded_pk+'/'+token+'/'
-        send_mail_password_reset.delay(email,reset_link)
+
+        subject = 'Reset password'
+        message = f'Reset your account password by clicking the below link {reset_link}'
+        send_mail_link.delay(user.email, reset_link, subject, message)
+        # send_mail_password_reset.delay(email,reset_link)
         return Response({
             'message':f'your password reset link {reset_link}',
             'status':status.HTTP_200_OK
@@ -143,7 +165,7 @@ class ResetPasswordView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
-    def patch(self,request,*args,**kwargs):
+    def post(self,request,*args,**kwargs):
         data = request.data
         serializer_class = PasswordResetConfirmSerializer(data=data,context = {'kwargs':kwargs})
         serializer_class.is_valid(raise_exception=True)

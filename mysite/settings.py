@@ -13,9 +13,30 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import environ
+from datetime import timedelta
 
 env = environ.Env()
 environ.Env.read_env()
+
+# mailjet
+EMAIL_BACKEND = 'django_mailjet.backends.MailjetBackend'
+EMAIL_HOST = 'girishshrma750@gmail.com'
+MAILJET_API_KEY = env('API_KEY')
+MAILJET_API_SECRET = env('SECRET_KEY')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_TIMEOUT = 30
+DEFAULT_FROM_EMAIL = 'sender_name <email_name>'
+
+# smtp email
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = 'girishshrma750@gmail.com'
+# EMAIL_HOST_PASSWORD = env('PASSWORD')
+# DEFAULT_FROM_EMAIL = 'Celery <girishshrma750@gmail.com>'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -135,14 +156,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#SMTP settings
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'girishshrma750@gmail.com'
-EMAIL_HOST_PASSWORD = env('PASSWORD')
-DEFAULT_FROM_EMAIL = 'Celery <girishshrma750@gmail.com>'
 
 #celery base setup
 CACHES = {
@@ -155,6 +168,8 @@ CACHES = {
     }
 }
 
+
+# CELERY SETTINGS
 CELERY_BROKER_URL = "redis://127.0.0.1:6379"
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_RESULT_SERIALIZER = 'json'
@@ -163,6 +178,15 @@ CELERY_TIME_ZONE = 'Asia/Kolkata'
 
 CELERY_RESULT_BACKEND = 'django-db'
 
+# simple jwt
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 #multiple DB Routing setting
 # DATABASE_ROUTERS = [
 #                     'routers.db_routers.UsersRouter',
