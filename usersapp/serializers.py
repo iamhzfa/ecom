@@ -156,4 +156,17 @@ class CustomerContactSerializer(serializers.ModelSerializer):
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ['city', 'state', 'country', 'zip_code', 'label']
+        fields = ['home_no', 'local_area', 'landmark', 'city', 'state', 'country', 'zip_code', 'label']
+
+class AddressUpdateSerializer(serializers.ModelSerializer):
+    pr_label = serializers.CharField(write_only=True)
+    class Meta:
+        model = Address
+        fields = ['pr_label', 'home_no', 'local_area', 'landmark', 'city', 'state', 'country', 'zip_code', 'label']
+       
+
+class SellerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Seller
+        fields = ['gst_no', 'company_name', 'company_contact', 'company_alt_contact']
+    

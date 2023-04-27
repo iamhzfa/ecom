@@ -37,7 +37,7 @@ class CustomerContact(models.Model):
         return self.user.username+'-'+self.contact
 
 class Seller(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     gst_no = models.CharField(max_length=7, unique=True)
     company_name = models.CharField(max_length=255, unique=True)
     company_contact = models.CharField(max_length=10, unique=True)
@@ -55,6 +55,9 @@ class Address(models.Model):
         ('OTHER', 'OTHER'),
     }
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    home_no = models.CharField(max_length=255, verbose_name='Flat, House no., Building, Company, Shop no., Apartment')
+    local_area = models.CharField(max_length=255, verbose_name='Area, Street, Sector, Village')
+    landmark = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
     state = models.CharField(max_length=255)
     country = models.CharField(max_length=255)
@@ -65,4 +68,3 @@ class Address(models.Model):
     is_active = models.BooleanField(default=True)
     def __str__(self):
         return self.user.username+'-'+self.zip_code
-    

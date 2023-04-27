@@ -1,4 +1,4 @@
-from .serializers import RegisterSerializer,ChangePasswordSerializer,LoginSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer, CustomerContactSerializer, AddressSerializer
+from .serializers import RegisterSerializer,ChangePasswordSerializer,LoginSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer, CustomerContactSerializer, AddressSerializer, AddressUpdateSerializer, SellerSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.contrib.auth.models import User
 from rest_framework.response import Response
@@ -13,11 +13,12 @@ from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from rest_framework import generics
 from .tasks import send_mail_link
 from django.contrib.auth.hashers import check_password
-# from django.contrib.auth import authenticate,login,logout
+from django.contrib.auth import logout
 from .models import Role, UserRole, CustomerContact, Seller, Address
 from django.core.mail import send_mail
 from django.conf import settings
-import json
+
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 
 
 # Create your views here.
@@ -175,12 +176,28 @@ class PasswordResetConfirmView(APIView):
             'status':status.HTTP_200_OK
         })
 
+class LogoutView(APIView):
+    permisson_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request, format=None):
+        # reqToken = request.headers['Authorization'][8:]
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            logout(request)
+
+            return Response({'msg':'logout successfully'},status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({'error':'error'}, status=status.HTTP_400_BAD_REQUEST)
+
 class CustomerContactView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
     def get(self, request):
-        customer = CustomerContact.objects.all()
+        customer = CustomerContact.objects.filter(user=request.user)
         serializer = CustomerContactSerializer(customer, many=True)
         return Response({"Data":serializer.data})
 
@@ -222,7 +239,7 @@ class AddressView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
     def get(self, request):
-        address = Address.objects.all()
+        address = Address.objects.filter(user=request.user)
         serializer = AddressSerializer(address, many=True)
         return Response({"Data":serializer.data})
 
@@ -239,20 +256,108 @@ class AddressView(APIView):
         return Response({'data':serializer.data})
 
     def put(self, request, format=None):
+        data = request.data
         try:
-            address = Address.objects.get(user=request.user) 
+            label = data['pr_label']
         except:
-            return Response({'error':'you have not provided any contact details yet'})
-        serializer = AddressSerializer(address, data=request.data)
+            return Response({'error':'pr_label is required'})
+        try:
+            address = Address.objects.filter(user=request.user).filter(label=label)
+            # print(address.values('city'))
+        except:
+            return Response({'error':'you have not provided any address details yet'})
+        if address.first() is None:
+            return Response({'error':f'You have not address with lable - {label}'})
+        serializer = AddressUpdateSerializer(address.first(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def patch(self, request, format=None):
+        data = request.data
+        try:
+            label = data['pr_label']
+        except:
+            return Response({'error':'pr_label is required'})
+        try:
+            address = Address.objects.filter(user=request.user).filter(label=label)
+        except:
+            return Response({'error':'you have not provided any address details yet'})
+        if address.first() is None:
+            return Response({'error':f'You have not address with lable - {label}'})
+        serializer = AddressUpdateSerializer(address.first(), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, format=None):
+        data = request.data
+        try:
+            label = data['pr_label']
+        except:
+            return Response({'error':'pr_label is required'})
+        try:
+            address = Address.objects.filter(user=request.user).filter(label=label)
+        except:
+            return Response({'error':'User yet not provided any detail'})
+        if address.first() is None:
+            return Response({'error':f'You have not address with lable - {label}'})
+        
+        address.first().delete()
+        return Response({'delete':'deleted successfully'},status=status.HTTP_204_NO_CONTENT)
+
+class SellerView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        try:
+            seller = Seller.objects.get(user=request.user)
+            print(seller)
+        except:
+            return Response({'error':'you are not seller'})
+        serializer = SellerSerializer(seller)
+        return Response({"Data":serializer.data})
+
+    def post(self, request):
+        user = request.user
+        try:
+            seller = Seller.objects.get(user=request.user) 
+            return Response({'error':'you have previously added your seller info'})
+        except:   
+            if not request.user.is_active:
+                return Response("Your account is not active")
+
+            data = request.data
+            serializer = SellerSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            seller = Seller.objects.create(**serializer.data, user= user)
+            return Response({'data':serializer.data})
+
+    def put(self, request, format=None):
+        try:
+            seller = Seller.objects.get(user=request.user)
+        except:
+            return Response({'error':'you have not seller account'})
+        serializer = SellerSerializer(seller, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def patch(self, request, format=None):
+        try:
+            seller = Seller.objects.get(user=request.user)
+        except:
+            return Response({'error':'you have not seller account'})
+        serializer = SellerSerializer(seller, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
 
     def delete(self, request, format=None):
         try:
-            address = Address.objects.filter(user=request.user)
+            seller = Seller.objects.get(user=request.user) 
         except:
-            return Response({'error':'User yet not provided any detail'})
-        
-        address.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'error':'you have nothing to delete'})
+        seller.delete()
+        return Response({'success':'seller account deleted sucessfully'}, status=status.HTTP_204_NO_CONTENT)

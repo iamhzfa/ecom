@@ -58,6 +58,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'usersapp',
+    'ecommerce',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_rest_passwordreset',
     'django_celery_results',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
