@@ -8,4 +8,7 @@ urlpatterns = [
     path('login/',views.LoginView.as_view(),name='login'),
     path('password-reset/',views.ResetPasswordView.as_view(),name='reset-password'),
     path('password-reset/<str:encoded_pk>/<str:token>/',views.PasswordResetConfirmView.as_view(),name='reset-password'),
+
+    path('customer-contact/', views.CustomerContactView.as_view(), name='customer-contact'),
+    path('address/', views.AddressView.as_view(), name='address'),
 ]

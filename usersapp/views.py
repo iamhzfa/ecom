@@ -1,4 +1,4 @@
-from .serializers import RegisterSerializer,ChangePasswordSerializer,LoginSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer
+from .serializers import RegisterSerializer,ChangePasswordSerializer,LoginSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer, CustomerContactSerializer, AddressSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.contrib.auth.models import User
 from rest_framework.response import Response
@@ -14,9 +14,10 @@ from rest_framework import generics
 from .tasks import send_mail_link
 from django.contrib.auth.hashers import check_password
 # from django.contrib.auth import authenticate,login,logout
-from .models import Role, UserRole
+from .models import Role, UserRole, CustomerContact, Seller, Address
 from django.core.mail import send_mail
 from django.conf import settings
+import json
 
 
 # Create your views here.
@@ -173,3 +174,85 @@ class PasswordResetConfirmView(APIView):
             'message':'password reset complete',
             'status':status.HTTP_200_OK
         })
+
+class CustomerContactView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        customer = CustomerContact.objects.all()
+        serializer = CustomerContactSerializer(customer, many=True)
+        return Response({"Data":serializer.data})
+
+    def post(self, request):
+        user = request.user
+        try:
+            customerContact = CustomerContact.objects.get(user=request.user) 
+            return Response({'error':'you have previously added your contact info'})
+        except:   
+            if not request.user.is_active:
+                return Response("Your account is not active")
+            data = request.data
+
+            serializer = CustomerContactSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            contact = CustomerContact.objects.create(**serializer.data, user= user)
+            return Response({'data':serializer.data})
+
+    def put(self, request, format=None):
+        try:
+            customerContact = CustomerContact.objects.get(user=request.user) 
+        except:
+            return Response({'error':'you have not provided any contact details yet'})
+        serializer = CustomerContactSerializer(customerContact, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, format=None):
+        try:
+            customerContact = CustomerContact.objects.get(user=request.user) 
+        except:
+            return Response({'error':'User yet not provided any detail'})
+        customerContact.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AddressView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    def get(self, request):
+        address = Address.objects.all()
+        serializer = AddressSerializer(address, many=True)
+        return Response({"Data":serializer.data})
+
+    def post(self, request):
+        user = request.user
+         
+        if not request.user.is_active:
+                return Response("Your account is not active")
+        data = request.data
+
+        serializer = AddressSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        contact = Address.objects.create(**serializer.data, user= user)
+        return Response({'data':serializer.data})
+
+    def put(self, request, format=None):
+        try:
+            address = Address.objects.get(user=request.user) 
+        except:
+            return Response({'error':'you have not provided any contact details yet'})
+        serializer = AddressSerializer(address, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, format=None):
+        try:
+            address = Address.objects.filter(user=request.user)
+        except:
+            return Response({'error':'User yet not provided any detail'})
+        
+        address.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

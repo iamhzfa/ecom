@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import check_password
-from .models import CustomizeUser
+from .models import CustomizeUser, CustomerContact, Seller, Address
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
@@ -145,3 +145,15 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('password')
+
+
+class CustomerContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerContact
+        fields = ['contact', 'alt_contact']
+       
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['city', 'state', 'country', 'zip_code', 'label']
