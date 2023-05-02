@@ -41,6 +41,7 @@ class CategoryMetaDataValues(models.Model):
     category_meta_data_field_id = models.ForeignKey(CategoryMetaDataField, on_delete=models.CASCADE, verbose_name='Category MetaData Field')
     # values = ArrayField(models.CharField(max_length=255, null=True, blank=True))
     values = models.JSONField()
+    extr_values = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
