@@ -8,9 +8,7 @@ from rest_framework.views import APIView
 from .generate_token import get_tokens_for_user
 from django.utils.encoding import force_bytes,smart_str
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
-from rest_framework import generics
 from .tasks import send_mail_link
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth import logout
