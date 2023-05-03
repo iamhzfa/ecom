@@ -2,7 +2,6 @@
 **/migrations
 **/media
 **/__pycache__
-tests.py
 .DS_Store
 static/*
 db.sqlite3

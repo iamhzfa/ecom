@@ -11,7 +11,7 @@ class ParentCategory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
-        return self.parent_cat_name
+        return self.parent_cat_name+'.'+str(self.id)
     class Meta:
         verbose_name_plural = 'Parent Categories'
 
@@ -23,7 +23,7 @@ class Category(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
-        return self.parent_cat_id.parent_cat_name+'->'+self.cat_name
+        return self.parent_cat_id.parent_cat_name+'->'+self.cat_name+"."+str(self.id)
     class Meta:
         verbose_name_plural = 'Categories'
 
@@ -34,14 +34,12 @@ class CategoryMetaDataField(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
-        return self.name
+        return self.name+"."+str(self.id)
     
 class CategoryMetaDataValues(models.Model):
     category_id = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Category Name')
     category_meta_data_field_id = models.ForeignKey(CategoryMetaDataField, on_delete=models.CASCADE, verbose_name='Category MetaData Field')
-    # values = ArrayField(models.CharField(max_length=255, null=True, blank=True))
-    values = models.JSONField()
-    extr_values = models.CharField(max_length=255, blank=True, null=True)
+    options = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

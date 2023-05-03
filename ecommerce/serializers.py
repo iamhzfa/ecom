@@ -22,11 +22,11 @@ class CategoryMetaDataValueSerializer(serializers.ModelSerializer):
     # category_meta_data_field_id = CategoryMetaDataFieldSerializer()
     class Meta:
         model = CategoryMetaDataValues
-        fields = ['category_id', 'category_meta_data_field_id', 'values', 'is_active', 'extr_values']
+        fields = ['category_id', 'category_meta_data_field_id', 'options', 'is_active']
 
 class CategoryMetaDataValueUpdateSerializer(serializers.ModelSerializer):
-    remove_value = serializers.JSONField(write_only=True, required=False)
+    remove_options = serializers.CharField(write_only=True, required=False)
     class Meta:
         model = CategoryMetaDataValues
-        fields = ['category_id', 'category_meta_data_field_id', 'values', 'is_active', 'remove_value']
+        fields = ['category_id', 'category_meta_data_field_id', 'options', 'is_active', 'remove_options']
 

@@ -12,6 +12,7 @@ from .serializers import ParentCategorySerializer, CategorySerializer, CategoryM
 # user
 from django.contrib.auth.models import User
 import json
+import types
 
 # Create your views here.
 class ParentCategoryView(APIView):
@@ -158,32 +159,24 @@ class CategoryMetaDataValueView(APIView):
     authentication_classes = [JWTAuthentication]
     def get(self, req):
         categoryMetaDataValues = CategoryMetaDataValues.objects.filter(is_active=True)
-        serializer = CategoryMetaDataValueSerializer(categoryMetaDataValues)
+        serializer = CategoryMetaDataValueSerializer(categoryMetaDataValues, many=True)
         return Response({'data':serializer.data})
 
     def post(self, request):
         data = request.data
         categoryId = data['category_id']
         metaDataFieldId = data['category_meta_data_field_id']
-        try:
-            mdfId = CategoryMetaDataField.objects.get(id=metaDataFieldId)
-        except:
-            return Response({'error':'this meta data field id does not exist'})
-        key = mdfId.name
-        values = data['values']
-        print(type(values))
-        check = json.loads(values)
-        try:
-            save = eval(check[key])
-        except:
-            return Response({'error':f'{key} does not matched with values key'})
+        op = data['options']
+        options = eval(op)
+        if type(options)!=type({'hi', 'ji'}):
+            return Response({'error':'Please enter options in valid form of set'})
 
         dt = CategoryMetaDataValues.objects.filter(category_id=categoryId, category_meta_data_field_id=data['category_meta_data_field_id'])
         if dt:
             return Response({'error':'Meta data value with this category exist'})
         serializer = CategoryMetaDataValueSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        # serializer.save()
+        serializer.save()
         return Response({'data':serializer.data})
 
 
@@ -205,53 +198,33 @@ class CategoryMetaDataValueDetailView(APIView):
         except:
             return Response({'error':'Invalid choice'})
         data=request.data
-
-        # update
-        metaDataFieldId = data['category_meta_data_field_id']
+        # new options
+        op = data['options']
+        options = eval(op)
+        if type(options)!=type({'hi', 'ji'}):
+            return Response({'error':'Please enter options in valid form of set'})
+        # previous options
+        preOp = categoryMetaDataValue.options
+        preOptions = eval(preOp)
+        # remove options
         try:
-            mdfId = CategoryMetaDataField.objects.get(id=metaDataFieldId)
+            removeOp = data['remove_options']
+            removeOptions = eval(removeOp)
+            print(type(removeOptions))
+            if type(removeOptions)!=type({'hi', 'ji'}):
+                return Response({'error':'Please enter remove_options in valid form of set'})
+            if len(removeOptions)>len(preOptions):
+                return Response({'error':'you can not remove items more than previously saved items'})
+            for x in removeOptions:
+                if x in preOptions:
+                    preOptions.remove(x)
         except:
-            return Response({'error':'this meta data field id does not exist'})
-        key = mdfId.name
-        values = data['values']
-        check = json.loads(values)
-        try:
-            save = eval(check[key])
-        except:
-            return Response({'error':f'{key} does not matched with values key'})
+            pass
 
-        # previous
-        preVal = categoryMetaDataValue.values
-        try:
-            preSave = eval(preVal[key])
-        except:
-            return Response({"error":"this key of value is not present in category meta data value"})
-
-        # merge both list
-        finSave = preSave+save
-        # list to set
-        mySet = set(finSave)
-        # set to list
-        myList = list(mySet)
-        # list to str
-        stringList = json.dumps(myList)
-        values = {
-            key:stringList
-        }
-        print(values)
-        # dict to str
-        val = json.dumps(values)
-        # newStr = ""
-        # for i in val:
-        #     if i!="\":
-        #         pass
-        #     else:
-        #         newStr += i
-        # print(newStr)
-        print(val)
-
+        # union of pre and new options
+        newOptions = preOptions.union(options)
         request.data._mutable = True
-        request.data['values']=val
+        request.data['options']=str(newOptions)
         serializer = CategoryMetaDataValueUpdateSerializer(categoryMetaDataValue, data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -262,9 +235,35 @@ class CategoryMetaDataValueDetailView(APIView):
             categoryMetaDataValue = CategoryMetaDataValues.objects.get(id=id)
         except:
             return Response({'error':'Invalid choice'})
-        # print(request.data['extra_values'])
-        
-        serializer = CategoryMetaDataValueUpdateSerializer(categoryMetaDataValue, data=request.data, partial=True)
+        data=request.data
+        # new options
+        op = data['options']
+        options = eval(op)
+        if type(options)!=type({'hi', 'ji'}):
+            return Response({'error':'Please enter options in valid form of set'})
+        # previous options
+        preOp = categoryMetaDataValue.options
+        preOptions = eval(preOp)
+        # remove options
+        try:
+            removeOp = data['remove_options']
+            removeOptions = eval(removeOp)
+            print(type(removeOptions))
+            if type(removeOptions)!=type({'hi', 'ji'}):
+                return Response({'error':'Please enter remove_options in valid form of set'})
+            if len(removeOptions)>len(preOptions):
+                return Response({'error':'you can not remove items more than previously saved items'})
+            for x in removeOptions:
+                if x in preOptions:
+                    preOptions.remove(x)
+        except:
+            pass
+
+        # union of pre and new options
+        newOptions = preOptions.union(options)
+        request.data._mutable = True
+        request.data['options']=str(newOptions)
+        serializer = CategoryMetaDataValueUpdateSerializer(categoryMetaDataValue, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -277,4 +276,5 @@ class CategoryMetaDataValueDetailView(APIView):
 
         val.delete()
         
-        return Response({'success':f'({val.values}) Category meta data value Deleted'}, status=status.HTTP_202_ACCEPTED)
+        return Response({'success':f'({val.options}) Category meta data value Deleted'}, status=status.HTTP_202_ACCEPTED)
+
