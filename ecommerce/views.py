@@ -9,7 +9,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
 from usersapp.models import Seller
 # serializers
-from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer
+from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer, ProductVariationSerializer
 # user
 from django.contrib.auth.models import User
 import json
@@ -368,3 +368,91 @@ class ProductDetailView(APIView):
         product.is_delete = True
         product.save()
         return Response({'success':'deleted successfully'},status=status.HTTP_204_NO_CONTENT)
+
+class ProductVariationView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        product = ProductVariation.objects.filter(is_active=True)
+        serializer = ProductVariationSerializer(product, many=True)
+        return Response({'data':serializer.data})
+    
+    def post(self, request):
+        user = request.user
+        try:
+            seller = Seller.objects.get(user=user)
+        except:
+            return Response({'error':'You are not seller'})
+        data = request.data
+        product = data['product']
+        prdct = Product.objects.get(id=product)
+        if seller != prdct.seller:
+            return Response({'error':'product variation post seller and product seller is not same'})
+        
+        serializer = ProductVariationSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'data':serializer.data})
+
+class ProductVariationDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request, id):
+        try:
+            productVar = ProductVariation.objects.filter(is_active=True).get(id=id)
+        except:
+            return Response({'error':'Object not found or not active'})
+        serializer = ProductVariationSerializer(productVar)
+        return Response({'data':serializer.data})
+    
+    def put(self, request, id):
+        try:
+            productVar = ProductVariation.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        data = request.data
+        try:
+            product = data['product']
+        except:
+            return Response({'error':'product is required'})
+        try:
+            isProduct = Product.objects.get(id=product)
+        except:
+            return Response({'error':'product is not exist'})
+        serializer = ProductVariationSerializer(productVar, data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data}, status=status.HTTP_200_OK)
+
+        
+    def patch(self, request, id):
+        try:
+            productVar = ProductVariation.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        data = request.data
+
+        try:
+            product = data['product']
+            try:
+                isProduct = Product.objects.get(id=product)
+            except:
+                return Response({'error':'product is not exist'})
+        except:
+            pass
+        serializer = ProductVariationSerializer(productVar, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data}, status=status.HTTP_200_OK)
+
+    def delete(self, request, id):
+        try:
+            productVar = ProductVariation.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found or not active'})
+        productVar.delete()
+        return Response({'success':'product variation deleted successfully'},status=status.HTTP_204_NO_CONTENT)
+

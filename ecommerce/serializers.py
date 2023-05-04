@@ -40,3 +40,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['name', 'category', 'description', 'is_cancellable', 'is_returnable', 'brand', 'is_active', 'is_delete']
 
+class ProductVariationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariation
+        fields = ['id', 'product', 'productLogo', 'quantity', 'price', 'metadata', 'image', 'is_active']
