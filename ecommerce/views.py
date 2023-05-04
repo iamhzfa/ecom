@@ -6,13 +6,13 @@ from rest_framework.views import APIView
 # rest_framework_simplejwt
 from rest_framework_simplejwt.authentication import JWTAuthentication
 # models
-from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues
+from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
+from usersapp.models import Seller
 # serializers
-from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer
+from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer
 # user
 from django.contrib.auth.models import User
 import json
-import types
 
 # Create your views here.
 class ParentCategoryView(APIView):
@@ -278,3 +278,93 @@ class CategoryMetaDataValueDetailView(APIView):
         
         return Response({'success':f'({val.options}) Category meta data value Deleted'}, status=status.HTTP_202_ACCEPTED)
 
+class ProductView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        product = Product.objects.filter(is_active=True).filter(is_delete=False)
+        serializer = ProductSerializer(product, many=True)
+        return Response({'data': serializer.data})
+
+    def post(self, request):
+        user = request.user
+        try:
+           seller = Seller.objects.get(user=user)
+        except:
+            return Response({'error': 'User is not a seller'})
+        
+        data = request.data
+        try:
+            category = data['category']
+        except:
+            return Response({'error':'category is required'})
+        try:
+            isCategory = Category.objects.get(id=category)
+        except:
+            return Response({'error':'category is not exist'})
+        serializer = ProductSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
+    
+class ProductDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request, id):
+        try:
+            product = Product.objects.filter(is_active=True).filter(is_delete=False).get(id=id)
+        except:
+            return Response({'error':'Object not found or deleted or not active'})
+        serializer = ProductSerializer(product)
+        return Response({'data':serializer.data})
+
+    def put(self, request, id):
+        try:
+            product = Product.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        data = request.data
+        try:
+            category = data['category']
+        except:
+            return Response({'error':'category is required'})
+        try:
+            isCategory = Category.objects.get(id=category)
+        except:
+            return Response({'error':'category is not exist'})
+        serializer = ProductUpdateSerializer(product, data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data}, status=status.HTTP_200_OK)
+        
+    def patch(self, request, id):
+        try:
+            product = Product.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        data = request.data
+
+        try:
+            category = data['category']
+            try:
+                isCategory = Category.objects.get(id=category)
+            except:
+                return Response({'error':'category is not exist'})
+        except:
+            pass
+        serializer = ProductUpdateSerializer(product, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data}, status=status.HTTP_200_OK)
+
+    def delete(self, request, id):
+        try:
+            product = Product.objects.filter(is_active=True).filter(is_delete=False).get(id=id)
+        except:
+            return Response({'error':'Object not found or deleted or not active'})
+        product.is_active = False
+        product.is_delete = True
+        product.save()
+        return Response({'success':'deleted successfully'},status=status.HTTP_204_NO_CONTENT)

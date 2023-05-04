@@ -7,4 +7,7 @@ urlpatterns = [
     path('category-meta-data/', views.CategoryMetaDataFieldView.as_view(), name='category-meta-data'),
     path('category-meta-data-value/', views.CategoryMetaDataValueView.as_view(), name='category-meta-data-value'),
     path('category-meta-data-value/<int:id>/', views.CategoryMetaDataValueDetailView.as_view(), name='category-meta-data-value-detail'),
+
+    path('product/', views.ProductView.as_view(), name='product'),
+    path('product/<int:id>/', views.ProductDetailView.as_view(), name='product-detail'),
 ]

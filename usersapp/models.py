@@ -46,7 +46,7 @@ class Seller(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     def __str__(self):
-        return self.user.username+'-'+self.company_name
+        return str(self.id)+'.'+self.user.username+'-'+self.company_name
     
 class Address(models.Model):
     LABEL = {

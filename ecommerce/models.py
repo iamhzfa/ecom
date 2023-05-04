@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import validate_comma_separated_integer_list
 from django.contrib.auth import validators
+from usersapp.models import Seller, User
 # Create your models here.
     
 class ParentCategory(models.Model):
@@ -40,8 +41,53 @@ class CategoryMetaDataValues(models.Model):
     category_id = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name='Category Name')
     category_meta_data_field_id = models.ForeignKey(CategoryMetaDataField, on_delete=models.CASCADE, verbose_name='Category MetaData Field')
     options = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, verbose_name='Active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return str(self.id)+'.'+self.category_id.cat_name+'-'+self.category_meta_data_field_id.name
+
+class Product(models.Model):
+    seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    is_cancellable = models.BooleanField(default=True, verbose_name='Cancellable')
+    is_returnable = models.BooleanField(default=True, verbose_name='Returnable')
+    brand = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True, verbose_name='Active')
+    is_delete = models.BooleanField(default=False, verbose_name='Delete')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"{str(self.category.id)}. {self.category.cat_name} -> {str(self.id)}. {self.name}({self.id})"
+
+class ProductImage(models.Model):
+    image = models.ImageField(upload_to='images/productImages/')
+    def __str__(self):
+        return str(self.id)
+    
+
+class ProductVariation(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    productLogo = models.ImageField(upload_to='images/productLogos/')
+    quantity = models.PositiveIntegerField()
+    price = models.PositiveIntegerField()
+    metadata = models.JSONField()
+    image = models.ManyToManyField(ProductImage)
+    is_active = models.BooleanField(default=True, verbose_name='Active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f'{str(self.id)}.{self.product.name}->{self.metadata}'
+
+class ProductReview(models.Model):
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    review = models.TextField()
+    rating = models.FloatField()
+    def __str__(self):
+        return f'{self.customer.username}-{self.product.name}'
+    
+
+    

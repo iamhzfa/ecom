@@ -1,4 +1,4 @@
-from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues
+from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
@@ -29,4 +29,14 @@ class CategoryMetaDataValueUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CategoryMetaDataValues
         fields = ['category_id', 'category_meta_data_field_id', 'options', 'is_active', 'remove_options']
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['seller', 'name', 'category', 'description', 'is_cancellable', 'is_returnable', 'brand', 'is_active', 'is_delete']
+
+class ProductUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['name', 'category', 'description', 'is_cancellable', 'is_returnable', 'brand', 'is_active', 'is_delete']
 
