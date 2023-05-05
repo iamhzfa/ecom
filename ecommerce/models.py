@@ -87,7 +87,7 @@ class ProductReview(models.Model):
     review = models.TextField()
     rating = models.FloatField()
     def __str__(self):
-        return f'{self.customer.username}-{self.product.name}'
+        return f'{self.id}.{self.customer.username}-{self.product.name}->{self.rating}'
     
 
     

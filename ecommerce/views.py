@@ -9,7 +9,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
 from usersapp.models import Seller
 # serializers
-from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer, ProductVariationSerializer
+from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer, ProductVariationSerializer, ProductReviewSerializer
 # user
 from django.contrib.auth.models import User
 import json
@@ -321,10 +321,22 @@ class ProductDetailView(APIView):
         return Response({'data':serializer.data})
 
     def put(self, request, id):
+        user = request.user
+        try:
+            seller = Seller.objects.get(user=user)
+        except:
+            return Response({'error':'you are not seller'})
+        
         try:
             product = Product.objects.get(id=id)
         except:
             return Response({'error':'Object not found'})
+
+        try:
+            productOfSeller = Product.objects.filter(seller=seller).get(id=product.id)
+        except:
+            return Response({'error':'this is not your product'})
+
         data = request.data
         try:
             category = data['category']
@@ -340,12 +352,23 @@ class ProductDetailView(APIView):
         return Response({'data':serializer.data}, status=status.HTTP_200_OK)
         
     def patch(self, request, id):
+        user = request.user
+        try:
+            seller = Seller.objects.get(user=user)
+        except:
+            return Response({'error':'you are not seller'})
+
         try:
             product = Product.objects.get(id=id)
         except:
             return Response({'error':'Object not found'})
-        data = request.data
 
+        try:
+            productOfSeller = Product.objects.filter(seller=seller).get(id=product.id)
+        except:
+            return Response({'error':'this is not your product'})
+
+        data = request.data
         try:
             category = data['category']
             try:
@@ -426,7 +449,6 @@ class ProductVariationDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'data':serializer.data}, status=status.HTTP_200_OK)
-
         
     def patch(self, request, id):
         try:
@@ -455,4 +477,139 @@ class ProductVariationDetailView(APIView):
             return Response({'error':'Object not found or not active'})
         productVar.delete()
         return Response({'success':'product variation deleted successfully'},status=status.HTTP_204_NO_CONTENT)
+
+class ProductReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        productReview = ProductReview.objects.all()
+        serializer = ProductReviewSerializer(productReview, many=True)
+        return Response({'data': serializer.data})
+
+    def post(self, request):
+        data = request.data
+        try:
+            user = data['customer']
+        except:
+            return Response({'error':'customer is required field'})
+        try:
+            customer = User.objects.get(id=user)
+        except:
+            return Response({'error':'Customer with this id is not exist'})
+        try:
+            prdct = data['product']
+        except:
+            return Response({'error':'product is required field'})
+        try:
+            product = Product.objects.get(id=prdct)
+        except:
+            return Response({'error':'product with this id is not exist'})
+        try:
+            productReview = ProductReview.objects.filter(product=product).get(customer=customer)
+            if productReview:
+                # return Response({'error':'you have make review previously for this product'})
+                print(productReview)
+                pass
+                try:
+                    rating = data['rating']
+                except:
+                    return Response({'error':'rating is required field'})
+
+                if(float(rating)>5.0):
+                    return Response({'error':'Rating must be smaller or equal to 5.0'})
+
+                serializer = ProductReviewSerializer(productReview, data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response({'data':serializer.data})
+        except:
+            try:
+                rating = data['rating']
+            except:
+                return Response({'error':'rating is required field'})
+
+            if(float(rating)>5.0):
+                return Response({'error':'Rating must be smaller or equal to 5.0'})
+
+            serializer = ProductReviewSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({'data':serializer.data})
+
+class ProductReviewDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request, id):
+        try:
+            productVar = ProductReview.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        serializer = ProductReviewSerializer(productVar)
+        return Response({'data':serializer.data})
+    
+    def put(self, request, id):
+        try:
+            productReview = ProductReview.objects.get(id=id)
+        except:
+            return Response({'error':'Review not found'})
+        data = request.data
+        try:
+            user = data['customer']
+        except:
+            return Response({'error':'customer is required field'})
+        try:
+            customer = User.objects.get(id=user)
+        except:
+            return Response({'error':'Customer with this id is not exist'})
+        try:
+            prdct = data['product']
+        except:
+            return Response({'error':'product is required field'})
+        try:
+            product = Product.objects.get(id=prdct)
+        except:
+            return Response({'error':'product with this id is not exist'})
+
+        serializer = ProductReviewSerializer(productReview, data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data})
+        
+    def patch(self, request, id):
+        try:
+            productReview = ProductReview.objects.get(id=id)
+        except:
+            return Response({'error':'Review not found'})
+        data = request.data
+        try:
+            user = data['customer']
+            try:
+                customer = User.objects.get(id=user)
+            except:
+                return Response({'error':'Customer with this id is not exist'})
+        except:
+            pass
+        try:
+            prdct = data['product']
+            try:
+                product = Product.objects.get(id=prdct)
+            except:
+                return Response({'error':'product with this id is not exist'})
+        except:
+            pass
+
+        serializer = ProductReviewSerializer(productReview, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data})
+
+    def delete(self, request, id):
+        try:
+            productReview = ProductReview.objects.get(id=id)
+        except:
+            return Response({'error':'Object not found'})
+        productReview.delete()
+        return Response({'success':'product review deleted successfully'},status=status.HTTP_204_NO_CONTENT)
 

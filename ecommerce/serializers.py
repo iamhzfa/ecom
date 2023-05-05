@@ -44,3 +44,8 @@ class ProductVariationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariation
         fields = ['id', 'product', 'productLogo', 'quantity', 'price', 'metadata', 'image', 'is_active']
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReview
+        fields = ['customer', 'product', 'review', 'rating']
