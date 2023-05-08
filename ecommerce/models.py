@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import validate_comma_separated_integer_list
 from django.contrib.auth import validators
-from usersapp.models import Seller, User
+from usersapp.models import Seller, User, Address
 # Create your models here.
     
 class ParentCategory(models.Model):
@@ -89,5 +89,67 @@ class ProductReview(models.Model):
     def __str__(self):
         return f'{self.id}.{self.customer.username}-{self.product.name}->{self.rating}'
     
+class WishlistProducts(models.Model):
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    productVariation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE)
+    def __str__(self):
+        return f'{self.customer.username}-{self.productVariation} fav❤️'
 
+class Cart(models.Model):
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    productVariation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE)
+    def __str__(self):
+        return f'{self.customer.username}-{self.productVariation.product.name} cart🛒'
+
+class Order(models.Model):
+    PAYMENT = {
+        ('CASH', 'CASH ON DELIVERY'),
+        ('UPI', 'PAYTM/PHONE PAY/GPAY'),
+        ('CARD', 'DEBIT/CREDIT CARD'),
+    }
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount_paid = models.PositiveIntegerField()
+    payment_method = models.CharField(max_length=255, choices=PAYMENT)
+    address = models.ForeignKey(Address, on_delete=models.CASCADE)
+    date_created = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f'{self.customer.username}-{self.amount_paid}-order'
+
+class OrderProduct(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    price = models.PositiveIntegerField()
+    product_variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f'{self.order}-{self.product_variation}'
+    
+class OrderStatus(models.Model):
+    STATUS = {
+        ('OP', 'ORDER PLACED'),
+        ('CO', 'CANCELLED ORDERED'),
+        ('OR', 'ORDER REJECTED'),
+        ('OC', 'ORDER CONFIRMED'),
+        ('OS', 'ORDER SHIPPED'),
+        ('OD', 'ORDER DELIVERED'),
+        ('RR', 'RETURN REQUEST'),
+        ('RN', 'RETURN NOT_APPROVED'),
+        ('RA', 'RETURN APPROVED'),
+        ('CL', 'CLOSED'),
+        ('PI', 'PICKUP INITIATED'),
+        ('PC', 'PICKUP COMPLETED'),
+        ('RI', 'REFUND INITIATED'),
+        ('RC', 'REFUND COMPLETED'),
+
+    }
+    order_product = models.ForeignKey(OrderProduct, on_delete=models.CASCADE)
+    from_status = models.CharField(max_length=255, choices=STATUS)
+    to_status = models.CharField(max_length=255, choices=STATUS)
+    transition_notes = models.CharField(max_length=255)
+    transition_date = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f'{self.order_product}-{self.from_status} to {self.to_status}'
+    
     

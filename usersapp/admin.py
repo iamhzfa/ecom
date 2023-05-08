@@ -6,7 +6,6 @@ from .models import CustomizeUser, Role, UserRole, CustomerContact, Seller, Addr
 # Register your models here.
 
 admin.site.register(Role)
-admin.site.register(UserRole)
 # admin.site.register(Customer)
 admin.site.register(Seller)
 # admin.site.register(Address)
@@ -28,6 +27,9 @@ class CustomerInline(admin.StackedInline):
     extra = 1
     verbose_name_plural = 'User as customer'
 
+@admin.register(UserRole)
+class UserRoleAdmin(admin.ModelAdmin):
+    list_filter = ("role__authority", )
 
 class CustomizeUserAdmin(UserAdmin):
     inlines = (UserInline, CustomerInline, AddressInline, )

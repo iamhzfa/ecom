@@ -17,7 +17,7 @@ class Role(models.Model):
     }
     authority = models.CharField(max_length=20, choices=AUTHORITY_CHOICES, default='CUSTOMER')
     def __str__(self):
-        return self.authority
+        return f'{self.id}. {self.authority}'
 
 class UserRole(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -1,4 +1,4 @@
-from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
+from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview, WishlistProducts, Cart, Order, OrderProduct, OrderStatus
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
@@ -49,3 +49,24 @@ class ProductReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductReview
         fields = ['customer', 'product', 'review', 'rating']
+
+class WishlistProductsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WishlistProducts
+        fields = ['customer', 'productVariation']
+
+class CartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart
+        fields = ['customer', 'quantity', 'productVariation']
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['customer', 'amount_paid', 'payment_method', 'address', 'date_created']
+
+class OrderProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderProduct
+        fields = ['order', 'quantity', 'price', 'product_variation', 'created_at', 'updated_at']
+ 

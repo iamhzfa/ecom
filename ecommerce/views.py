@@ -6,10 +6,10 @@ from rest_framework.views import APIView
 # rest_framework_simplejwt
 from rest_framework_simplejwt.authentication import JWTAuthentication
 # models
-from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview
+from .models import ParentCategory, Category, CategoryMetaDataField, CategoryMetaDataValues, Product, ProductImage, ProductVariation, ProductReview, WishlistProducts, Cart, Order, OrderProduct, OrderStatus
 from usersapp.models import Seller
 # serializers
-from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer, ProductVariationSerializer, ProductReviewSerializer
+from .serializers import ParentCategorySerializer, CategorySerializer, CategoryMetaDataFieldSerializer, CategoryMetaDataValueSerializer, CategoryMetaDataValueUpdateSerializer, ProductSerializer, ProductUpdateSerializer, ProductVariationSerializer, ProductReviewSerializer, WishlistProductsSerializer, CartSerializer, OrderSerializer, OrderProductSerializer
 # user
 from django.contrib.auth.models import User
 import json
@@ -613,3 +613,146 @@ class ProductReviewDetailView(APIView):
         productReview.delete()
         return Response({'success':'product review deleted successfully'},status=status.HTTP_204_NO_CONTENT)
 
+class WishlistProductsView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        wishlistProducts = WishlistProducts.objects.filter(customer=request.user.id)
+        serializer = WishlistProductsSerializer(wishlistProducts, many=True)
+        return Response({'data': serializer.data})
+
+    def post(self, request):
+        data = request.data
+        try:
+            productVariationId = data['productVariation']
+        except:
+            return Response({'error':'productVariation is required field'})
+        try:
+            productVariation = ProductVariation.objects.get(id=productVariationId)
+        except:
+            return Response({'error':'product Variation nott found with this id'})
+        
+        data._mutable = True
+        data['customer'] = request.user.id
+        try:
+            wishlistProduct = WishlistProducts.objects.filter(productVariation=productVariation).get(customer=request.user.id)
+            return Response({'error':f'{wishlistProduct} is already exists in your favourits'})
+        except:
+            pass
+        serializer = WishlistProductsSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data})
+
+    def delete(self, request):
+        data = request.data
+        try:
+            productVar = data['productVariation']
+        except:
+            return Response({'error':'productVariation is required field'})
+        try:
+            wishlistProduct = WishlistProducts.objects.filter(productVariation=productVar).get(customer=request.user.id)
+        except:
+            return Response({'error':'no such product'})
+
+        wishlistProduct.delete()
+        return Response({'success':'Wishlist product remove successfully'})
+
+class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        cart = Cart.objects.filter(customer=request.user.id)
+        serializer = CartSerializer(cart, many=True)
+        return Response({'data': serializer.data})
+
+    def post(self, request):
+        data = request.data
+        try:
+            productVariationId = data['productVariation']
+        except:
+            return Response({'error':'productVariation is required field'})
+        try:
+            productVariation = ProductVariation.objects.get(id=productVariationId)
+        except:
+            return Response({'error':'product Variation nott found with this id'})
+        
+        try:
+            quantity = data['quantity']
+        except:
+            return Response({'error':'quantity is required field'})
+        if int(quantity)>productVariation.quantity:
+            return Response({'error':'Quantity not available (Out of stock)'})
+
+        data._mutable = True
+        data['customer'] = request.user.id
+        try:
+            cart = Cart.objects.filter(productVariation=productVariation).get(customer=request.user.id)
+            return Response({'error':f'{cart} is already exists in your cart'})
+        except:
+            pass
+        serializer = CartSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data})
+
+    def patch(self, request):
+        data = request.data
+        try:
+            productVar = data['productVariation']
+        except:
+            return Response({'error':'productVariation is required field'})
+        try:
+            productVariation = ProductVariation.objects.get(id=productVar)
+        except:
+            return Response({'error':'product Variation not found with this id'})
+        try:
+            quantity = data['quantity']
+        except:
+            return Response({'error':'quantity is required field'})
+        try:
+            cartItem = Cart.objects.filter(productVariation=productVar).get(customer=request.user.id)
+        except:
+            return Response({'error':'no such product'})
+
+        if int(quantity)>productVariation.quantity:
+            return Response({'error':'Quantity not available (Out of stock)'})
+
+        cartItem.quantity = int(quantity)
+        cartItem.save()
+
+        return Response({'data':f'{cartItem} - quantity updated to {cartItem.quantity}'})
+
+    def delete(self, request):
+        data = request.data
+        try:
+            productVar = data['productVariation']
+        except:
+            return Response({'error':'productVariation is required field'})
+        try:
+            cart = Cart.objects.filter(productVariation=productVar).get(customer=request.user.id)
+        except:
+            return Response({'error':'no such product'})
+
+        cart.delete()
+        return Response({'success':'Cart product remove successfully'})
+
+class OrderView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request):
+        order = Order.objects.filter(customer=request.user.id)
+        serializer = OrderSerializer(order, many=True)
+        return Response({'data':serializer.data})
+    
+    def post(self,request):
+        # fields = ['customer', 'amount_paid', 'payment_method', 'address', 'date_created']
+        data = request.data
+        
+        serializer = OrderSerializer(data = data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'data':serializer.data})

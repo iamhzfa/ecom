@@ -320,7 +320,7 @@ class SellerView(APIView):
     def post(self, request):
         user = request.user
         try:
-            seller = Seller.objects.get(user=request.user) 
+            seller = Seller.objects.get(user=request.user)
             return Response({'error':'you have previously added your seller info'})
         except:   
             if not request.user.is_active:
@@ -330,6 +330,13 @@ class SellerView(APIView):
             serializer = SellerSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             seller = Seller.objects.create(**serializer.data, user= user)
+            try:
+                userRole = UserRole.objects.get(user=seller.user)
+                role = Role.objects.get(authority='SELLER')
+                userRole.role = role
+                userRole.save()
+            except:
+                return Response({'error':'you have not any role'})
             return Response({'data':serializer.data})
 
     def put(self, request, format=None):

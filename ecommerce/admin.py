@@ -19,3 +19,13 @@ class FilterManyToMany(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "is_delete", )
     search_fields = ("name", )
+
+# admin.site.register(models.WishlistProducts)
+@admin.register(models.WishlistProducts)
+class WishlistProductsAdmin(admin.ModelAdmin):
+    search_fields = ("customer__username", "productVariation__product__name")
+
+admin.site.register(models.Cart)
+admin.site.register(models.Order)
+admin.site.register(models.OrderProduct)
+admin.site.register(models.OrderStatus)
