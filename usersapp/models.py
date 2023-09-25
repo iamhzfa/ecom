@@ -67,4 +67,4 @@ class Address(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     def __str__(self):
-        return self.user.username+'-'+self.zip_code
+        return str(self.id)+'.'+self.user.username+'-'+self.zip_code

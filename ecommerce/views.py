@@ -13,6 +13,7 @@ from .serializers import ParentCategorySerializer, CategorySerializer, CategoryM
 # user
 from django.contrib.auth.models import User
 import json
+from django.db.models import Sum, F
 
 # Create your views here.
 class ParentCategoryView(APIView):
@@ -743,16 +744,94 @@ class OrderView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
     
-    def get(self, request):
-        order = Order.objects.filter(customer=request.user.id)
-        serializer = OrderSerializer(order, many=True)
-        return Response({'data':serializer.data})
-    
     def post(self,request):
-        # fields = ['customer', 'amount_paid', 'payment_method', 'address', 'date_created']
         data = request.data
-        
+        try:
+            quantity = data['quantity']
+        except:
+            return Response({'error': 'quantity is required'})
+        try:
+            price = data['price']
+        except:
+            return Response({'error': 'price is required'})
+        try:
+            productVariationId = data['product_variation']
+        except:
+            return Response({'error': 'product_variation is required'})
+        try:
+            productVariation = ProductVariation.objects.get(id=productVariationId)
+        except:
+            return Response({'error':'product Variation not found with this id'})
+        if int(price) != productVariation.price:
+            return Response({'error':f'price must be same. Product price is {productVariation.price}'})
+        if int(quantity)>productVariation.quantity:
+            return Response({'error':f'product not available in this quantity. Please choose under {productVariation.quantity} quantity'})
+
+        data._mutable = True
+        data['customer'] = request.user.id
+        data['is_active'] = True
+        data['amount_paid'] = int(price) * int(quantity)
         serializer = OrderSerializer(data = data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        order = serializer.save()
+        productVariation.quantity = productVariation.quantity-int(quantity)
+        productVariation.save()
+        orderProduct = OrderProduct.objects.create(order=order, quantity=quantity, price=price, product_variation=productVariation)
+        print(orderProduct)
+        return Response({'data':serializer.data})
+
+class OrderCartView(APIView):
+    permission_classes = [IsAuthenticated]    
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request):
+        order = Order.objects.filter(customer=request.user.id).filter(is_active=True)
+        serializer = OrderSerializer(order, many=True)
+        return Response({'data':serializer.data})
+
+    def post(self,request):
+        data = request.data
+        user = request.user.id
+        cart = Cart.objects.filter(customer=user)
+        # print(cart.aggregate(sum(int('price'))))
+        quantity = cart.values('quantity')
+        productVariationId = cart.values('productVariation')
+        productVariations = ProductVariation.objects.filter(id__in=productVariationId)
+        # print(quantity.aggregate(sum(int('quantity'))))
+        # .annotate(pricePerProduct = Sum(F('amount') * F(newQuantity)))
+        price = productVariations.values('price')
+
+        # print(price)
+        existQuantity = productVariations.values('quantity')
+        # print(quantity)
+        # print(existQuantity)
+        i=0
+        list = []
+        for pv in productVariations:
+            print(pv)
+            # print(quantity[i]['quantity'])
+            if int(quantity[i]['quantity'])>pv.quantity:
+                list.append(pv)
+                # return Response({'error':f'product not available in this quantity. Please choose under {pv.quantity} quantity'})
+            
+            pv.quantity = pv.quantity-int(quantity[i]['quantity'])
+            print(pv.quantity)
+            i += 1
+        if len(list)!=0:
+            return Response({'error':f'product not available in this quantity. Please choose under {list}'})
+            
+        # if int(price) != productVariation.price:
+        #     return Response({'error':f'price must be same. Product price is {productVariation.price}'})
+
+        # data._mutable = True
+        # data['customer'] = user
+        # data['is_active'] = True
+        # data['amount_paid'] = int(price) * int(quantity)
+        serializer = OrderSerializer(data = data)
+        serializer.is_valid(raise_exception=True)
+        # order = serializer.save()
+        # productVariation.quantity = productVariation.quantity-int(quantity)
+        # productVariation.save()
+        # orderProduct = OrderProduct.objects.create(order=order, quantity=quantity, price=price, product_variation=productVariation)
+        # print(orderProduct)
         return Response({'data':serializer.data})

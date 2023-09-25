@@ -113,6 +113,7 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=255, choices=PAYMENT)
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name='Active')
     def __str__(self):
         return f'{self.customer.username}-{self.amount_paid}-order'
 
@@ -124,7 +125,7 @@ class OrderProduct(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
-        return f'{self.order}-{self.product_variation}'
+        return f'{self.id}.{self.order}-{self.product_variation}'
     
 class OrderStatus(models.Model):
     STATUS = {
